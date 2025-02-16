@@ -120,7 +120,7 @@ function handleMenu(option) {
             rl.close();
             break;
         default:
-            console.log("Invalid option. Try again.");
+            console.log("Invalid option. Try again. ");
             showMenu();
     }
 }
