@@ -71,85 +71,146 @@
             </thead>
             <tbody id="transaction-list"></tbody>
         </table>
+
+        <h3>Summary</h3>
+        <button onclick="showSummary('weekly')">Weekly</button>
+        <button onclick="showSummary('monthly')">Monthly</button>
+        <button onclick="showSummary('yearly')">Yearly</button>
+        <div id="summary"></div>
+
+        <h3>Spending Patterns</h3>
+        <button onclick="showCategorizedExpenses()">Show Categorized Expenses</button>
+        <div id="categorized-expenses"></div>
     </div>
 
     <script>
         class FinanceManager {
-            constructor() {
-                this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-                this.renderTransactions();
-                this.updateBalance();
-            }
+    constructor() {
+        this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+        this.renderTransactions();
+        this.updateBalance();
+    }
 
-            saveTransactions() {
-                localStorage.setItem("transactions", JSON.stringify(this.transactions));
-            }
+    saveTransactions() {
+        localStorage.setItem("transactions", JSON.stringify(this.transactions));
+    }
 
-            addTransaction() {
-                const type = document.getElementById("type").value;
-                const amount = parseFloat(document.getElementById("amount").value);
-                const category = document.getElementById("category").value;
-                const date = document.getElementById("date").value;
+    addTransaction() {
+        const type = document.getElementById("type").value;
+        const amount = parseFloat(document.getElementById("amount").value);
+        const category = document.getElementById("category").value;
+        const date = document.getElementById("date").value;
 
-                if (!amount || amount <= 0 || !category || !date) {
-                    alert("Please enter valid transaction details.");
-                    return;
-                }
-
-                this.transactions.push({
-                    id: Date.now(),
-                    type,
-                    amount,
-                    category,
-                    date: new Date(date)
-                });
-
-                this.saveTransactions();
-                this.renderTransactions();
-                this.updateBalance();
-            }
-
-            deleteTransaction(id) {
-                this.transactions = this.transactions.filter(txn => txn.id !== id);
-                this.saveTransactions();
-                this.renderTransactions();
-                this.updateBalance();
-            }
-
-            getBalance() {
-                let income = this.transactions.filter(txn => txn.type === 'income').reduce((sum, txn) => sum + txn.amount, 0);
-                let expenses = this.transactions.filter(txn => txn.type === 'expense').reduce((sum, txn) => sum + txn.amount, 0);
-                return income - expenses;
-            }
-
-            updateBalance() {
-                document.getElementById("balance").innerText = this.getBalance().toFixed(2);
-            }
-
-            renderTransactions() {
-                const tableBody = document.getElementById("transaction-list");
-                tableBody.innerHTML = "";
-
-                this.transactions.forEach(txn => {
-                    let row = `<tr>
-                        <td>${txn.id}</td>
-                        <td>${txn.type}</td>
-                        <td>$${txn.amount.toFixed(2)}</td>
-                        <td>${txn.category}</td>
-                        <td>${new Date(txn.date).toLocaleDateString()}</td>
-                        <td><button onclick="financeManager.deleteTransaction(${txn.id})">Delete</button></td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
-                });
-            }
+        if (!amount || amount <= 0 || !category || !date) {
+            alert("Please enter valid transaction details.");
+            return;
         }
 
-        const financeManager = new FinanceManager();
+        this.transactions.push({
+            id: Date.now(),
+            type,
+            amount,
+            category,
+            date: new Date(date)
+        });
 
-        function addTransaction() {
-            financeManager.addTransaction();
+        this.saveTransactions();
+        this.renderTransactions();
+        this.updateBalance();
+    }
+
+    deleteTransaction(id) {
+        this.transactions = this.transactions.filter(txn => txn.id !== id);
+        this.saveTransactions();
+        this.renderTransactions();
+        this.updateBalance();
+    }
+
+    getBalance() {
+        let income = this.transactions.filter(txn => txn.type === 'income').reduce((sum, txn) => sum + txn.amount, 0);
+        let expenses = this.transactions.filter(txn => txn.type === 'expense').reduce((sum, txn) => sum + txn.amount, 0);
+        return income - expenses;
+    }
+
+    updateBalance() {
+        document.getElementById("balance").innerText = this.getBalance().toFixed(2);
+    }
+
+    renderTransactions() {
+        const tableBody = document.getElementById("transaction-list");
+        tableBody.innerHTML = "";
+
+        this.transactions.forEach(txn => {
+            let row = `<tr>
+                <td>${txn.id}</td>
+                <td>${txn.type}</td>
+                <td>$${txn.amount.toFixed(2)}</td>
+                <td>${txn.category}</td>
+                <td>${new Date(txn.date).toLocaleDateString()}</td>
+                <td><button onclick="financeManager.deleteTransaction(${txn.id})">Delete</button></td>
+            </tr>`;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    getSummary(period) {
+        const now = new Date();
+        let startDate = new Date();
+
+        if (period === "weekly") {
+            startDate.setDate(now.getDate() - 7);
+        } else if (period === "monthly") {
+            startDate.setMonth(now.getMonth() - 1);
+        } else if (period === "yearly") {
+            startDate.setFullYear(now.getFullYear() - 1);
         }
-    </script>
+
+        let filtered = this.transactions.filter(txn => new Date(txn.date) >= startDate && new Date(txn.date) <= now);
+
+        let income = filtered.filter(txn => txn.type === 'income').reduce((sum, txn) => sum + txn.amount, 0);
+        let expenses = filtered.filter(txn => txn.type === 'expense').reduce((sum, txn) => sum + txn.amount, 0);
+
+        document.getElementById("summary").innerHTML = `
+            <p>Income: $${income.toFixed(2)}</p>
+            <p>Expenses: $${expenses.toFixed(2)}</p>
+            <p>Balance: $${(income - expenses).toFixed(2)}</p>
+        `;
+    }
+
+    getCategorizedExpenses() {
+        let categories = {};
+        this.transactions.filter(txn => txn.type === 'expense').forEach(txn => {
+            if (!categories[txn.category]) {
+                categories[txn.category] = 0;
+            }
+            categories[txn.category] += txn.amount;
+        });
+
+        let output = "<h3>Spending Patterns</h3>";
+        for (let category in categories) {
+            output += `<p>${category}: $${categories[category].toFixed(2)}</p>`;
+        }
+
+        document.getElementById("categorized-expenses").innerHTML = output;
+    }
+}
+
+const financeManager = new FinanceManager();
+
+function addTransaction() {
+    financeManager.addTransaction();
+}
+
+function showSummary(period) {
+    financeManager.getSummary(period);
+}
+
+function showCategorizedExpenses() {
+    financeManager.getCategorizedExpenses();
+}
+
+    </script> 
+        
 
 </body>
 </html>
