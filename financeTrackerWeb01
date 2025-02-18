@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            max-width: 600px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        input, select, button {
+            padding: 10px;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Finance Tracker</h1>
+
+    <div class="container">
+        <h3>Add Transaction</h3>
+        <label>Type:</label>
+        <select id="type">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+        </select>
+
+        <label>Amount:</label>
+        <input type="number" id="amount" placeholder="Enter amount">
+
+        <label>Category:</label>
+        <input type="text" id="category" placeholder="Enter category">
+
+        <label>Date:</label>
+        <input type="date" id="date">
+
+        <button onclick="addTransaction()">Add Transaction</button>
+
+        <h3>Balance: $<span id="balance">0.00</span></h3>
+
+        <h3>Transaction List</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="transaction-list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        class FinanceManager {
+            constructor() {
+                this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+                this.renderTransactions();
+                this.updateBalance();
+            }
+
+            saveTransactions() {
+                localStorage.setItem("transactions", JSON.stringify(this.transactions));
+            }
+
+            addTransaction() {
+                const type = document.getElementById("type").value;
+                const amount = parseFloat(document.getElementById("amount").value);
+                const category = document.getElementById("category").value;
+                const date = document.getElementById("date").value;
+
+                if (!amount || amount <= 0 || !category || !date) {
+                    alert("Please enter valid transaction details.");
+                    return;
+                }
+
+                this.transactions.push({
+                    id: Date.now(),
+                    type,
+                    amount,
+                    category,
+                    date: new Date(date)
+                });
+
+                this.saveTransactions();
+                this.renderTransactions();
+                this.updateBalance();
+            }
+
+            deleteTransaction(id) {
+                this.transactions = this.transactions.filter(txn => txn.id !== id);
+                this.saveTransactions();
+                this.renderTransactions();
+                this.updateBalance();
+            }
+
+            getBalance() {
+                let income = this.transactions.filter(txn => txn.type === 'income').reduce((sum, txn) => sum + txn.amount, 0);
+                let expenses = this.transactions.filter(txn => txn.type === 'expense').reduce((sum, txn) => sum + txn.amount, 0);
+                return income - expenses;
+            }
+
+            updateBalance() {
+                document.getElementById("balance").innerText = this.getBalance().toFixed(2);
+            }
+
+            renderTransactions() {
+                const tableBody = document.getElementById("transaction-list");
+                tableBody.innerHTML = "";
+
+                this.transactions.forEach(txn => {
+                    let row = `<tr>
+                        <td>${txn.id}</td>
+                        <td>${txn.type}</td>
+                        <td>$${txn.amount.toFixed(2)}</td>
+                        <td>${txn.category}</td>
+                        <td>${new Date(txn.date).toLocaleDateString()}</td>
+                        <td><button onclick="financeManager.deleteTransaction(${txn.id})">Delete</button></td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
+            }
+        }
+
+        const financeManager = new FinanceManager();
+
+        function addTransaction() {
+            financeManager.addTransaction();
+        }
+    </script>
+
+</body>
+</html>
